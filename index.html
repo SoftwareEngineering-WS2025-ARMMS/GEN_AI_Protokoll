@@ -75,7 +75,7 @@
 
             try {
                 // Send the audio file to the orchestrator backend
-                const response = await fetch("http://localhost:8000/process-audio", {
+                const response = await fetch("http://localhost:5000/process-audio", {
                     method: "POST",
                     body: formData
                 });
