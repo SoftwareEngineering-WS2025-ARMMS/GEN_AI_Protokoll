@@ -64,7 +64,7 @@ class Recording:
             start_idx = int(start * 1000)
             end_idx = int(end * 1000)
             segment_audio = self.content[start_idx:end_idx]
+
             recording = Recording(extension=self.extension, content=segment_audio, waveform=segment_waveform)
             split_segments.append((speaker, recording))
-
         return split_segments
