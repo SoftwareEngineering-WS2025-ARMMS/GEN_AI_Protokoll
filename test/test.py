@@ -7,7 +7,7 @@ os.chdir(d + '/..')
 from backend.utils import *
 
 annotation = Annotation('cuda')
-recording = Recording.from_file('audio_files/test_de_1.wav')
+recording = Recording.from_file_path('audio_files/test_de_1.wav')
 l = annotation.annotate(recording)
 recs = recording.trim_recording(l)
 audio_trans = AudioTranscript(recs)

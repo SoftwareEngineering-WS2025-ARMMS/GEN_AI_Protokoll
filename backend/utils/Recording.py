@@ -1,4 +1,5 @@
 import os
+from io import BytesIO
 import torchaudio
 
 from pydub import AudioSegment
@@ -39,10 +40,17 @@ class Recording:
         self._waveform = waveform
 
     @classmethod
-    def from_file(cls, file_path: str) -> "Recording":
+    def from_file_path(cls, file_path: str) -> "Recording":
         extension = os.path.splitext(file_path)[-1]
         content = AudioSegment.from_file(file_path)
         recording = cls(extension=extension, content=content, waveform=torchaudio.load(file_path))
+        return recording
+
+    @classmethod
+    def from_file(cls, file, extension='.wav') -> "Recording":
+        byte_obj = BytesIO(file.read())
+        content = AudioSegment.from_file(byte_obj, format=extension[1:])
+        recording = cls(extension=extension, content=content, waveform=torchaudio.load(byte_obj))
         return recording
 
     def trim_recording(self, annotation: list[tuple[str, float, float]]) -> list[tuple[str, "Recording"]]:
