@@ -1,5 +1,3 @@
-import os
-
 from pyannote.audio import Pipeline
 import torch
 

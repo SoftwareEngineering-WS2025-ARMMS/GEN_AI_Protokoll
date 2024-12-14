@@ -1,6 +1,7 @@
 import inspect
 import json
-from typing import get_origin, get_args
+from typing import get_origin, get_args, Union
+
 
 class FunctionTool:
     """
@@ -22,64 +23,7 @@ class FunctionTool:
     """
 
     @staticmethod
-    def _get_type_name(annotation):
-        if annotation == inspect.Parameter.empty:
-            return "string"
-        if getattr(annotation, '__name__', None):
-            return annotation.__name__.lower()
-        if get_origin(annotation) is type(None):
-            return "null"
-        if get_origin(annotation) is not None:  # Handle Union types
-            types = [FunctionTool._get_type_name(arg) for arg in get_args(annotation)]
-            return " | ".join(set(types))
-        return str(annotation).lower()
-
-    @staticmethod
-    def _extract_section(lines, start_tag):
-        section = []
-        capturing = False
-        for line in lines:
-            if start_tag and line.strip().lower().startswith(start_tag.lower()):
-                capturing = True
-                section.append(line.split(start_tag, 1)[1].strip())
-            elif not start_tag and not line.strip().startswith(':') and line.strip():
-                capturing = True
-                section.append(line.strip())
-            elif capturing and line.strip():
-                if line.strip().startswith(':') or line.strip().lower() == 'examples:':
-                    break
-                section.append(line.strip())
-        return "\n".join(section)
-
-    @staticmethod
     def __metadata__(func: callable) -> dict:
-        """
-        Creates the function metadata as a tool usable by OpenAI prompts using the docstring of the given function.
-        :param func: The function, which in the best case has a description of its functionality, parameters and return
-        :return: A dictionary with the metadata which OpenAI prompts understand as a JSON object
-        """
-
-        signature = inspect.signature(func)
-
-        func_name = func.__name__
-
-        if inspect.isclass(func):
-            func = func.__init__
-
-        docstring = inspect.getdoc(func) or "No description available"
-        lines = docstring.splitlines()
-        description = FunctionTool._extract_section(lines, "")
-        returning = FunctionTool._extract_section(lines, ":return:")
-        description = description + '\nThe function returns: ' + returning
-
-        parameters = {
-            "type": "object",
-            "properties": {},
-            "required": [],
-            "optional": {}
-        }
-
-        examples = FunctionTool._extract_section(lines, "Examples:")
 
         type_mapping = {
             "str": "string",
@@ -90,6 +34,72 @@ class FunctionTool:
             "dict": "object"
         }
 
+        def _get_type_name(annotation):
+            if annotation == inspect.Parameter.empty:
+                return "string"
+            if getattr(annotation, '__name__', None) and annotation.__name__.lower() not in ['optional', 'union']:
+                return annotation.__name__.lower()
+            if get_origin(annotation) is type(None):
+                return "null"
+            if get_origin(annotation) in [list, dict]:
+                args = get_args(annotation)
+                if get_origin(annotation) is list:
+                    return {
+                        "type": "array",
+                        "items": _get_type_name(args[0]) if args else "string"
+                    }
+                if get_origin(annotation) is dict and len(args) == 2:
+                    return {
+                        "type": "object",
+                        "additionalProperties": _get_type_name(args[1])
+                    }
+            if get_origin(annotation) is Union:
+                types = [type_mapping.get(_get_type_name(arg)) for arg in get_args(annotation) if arg is not type(None)]
+                return types if len(types) > 1 else types[0]
+            return str(annotation).lower()
+
+        def _get_object_properties(json_obj):
+            if isinstance(json_obj, dict):
+                return {"type": "object", "properties": {key: _get_object_properties(value)
+                for key, value in json_obj.items()}}
+            if isinstance(json_obj, list):
+                return {"type": "array", "items": _get_object_properties(json_obj[0])}
+            return {"type" : type_mapping.get(json_obj)}
+            #raise f"Undefined type {type(json_obj)}"
+
+        def _extract_section(lines, start_tag):
+            section = []
+            capturing = False
+            for line in lines:
+                if start_tag and line.strip().lower().startswith(start_tag.lower()):
+                    capturing = True
+                    section.append(line.split(start_tag, 1)[1].strip())
+                elif not start_tag and not line.strip().startswith(':') and line.strip():
+                    capturing = True
+                    section.append(line.strip())
+                elif capturing and line.strip():
+                    if line.strip().startswith(':') or line.strip().lower() == 'examples:':
+                        break
+                    section.append(line.strip())
+            return "\n".join(section)
+        signature = inspect.signature(func)
+        func_name = func.__name__
+
+        if inspect.isclass(func):
+            func = func.__init__
+
+        docstring = inspect.getdoc(func) or "No description available"
+        lines = docstring.splitlines()
+        description = _extract_section(lines, "")
+        returning = _extract_section(lines, ":return:")
+        description = description + '\nThe function returns: ' + returning
+
+        parameters = {
+            "type": "object",
+            "properties": {},
+            "required": []
+        }
+
         self = inspect.ismethod(func)
 
         for name, param in signature.parameters.items():
@@ -97,29 +107,33 @@ class FunctionTool:
                 self = False
                 continue
 
-            param_type = FunctionTool._get_type_name(param.annotation)
-            param_type = type_mapping.get(param_type, param_type)
+            param_type = _get_type_name(param.annotation)
+            if isinstance(param_type, str):
+                param_type = type_mapping.get(param_type, param_type)
 
-
-            param_description = FunctionTool._extract_section(lines, f":param {name}:") or "No description available"
-            explicit_type = FunctionTool._extract_section(lines, f":type {name}:")
+            param_description = _extract_section(lines, f":param {name}:") or "No description available"
+            explicit_type = _extract_section(lines, f":type {name}:")
+            properties = None
             if explicit_type:
-                param_type = type_mapping.get(explicit_type.lower(), param_type)
+                try:
+                    properties = _get_object_properties(json.loads(explicit_type.strip()))
+                except:
+                    properties = None
 
-            param_entry = {
-                "type": param_type,
-                "description": param_description
-            }
+            if properties:
+                param_entry = properties
+                param_entry["description"] = param_description
+            else:
+                param_entry = {
+                    "type": param_type,
+                    "description": param_description
+                }
+
+
+            parameters["properties"][name] = param_entry
 
             if param.default == inspect.Parameter.empty:
                 parameters["required"].append(name)
-            else:
-                parameters["optional"][name] = {
-                    "default": param.default,
-                    **param_entry
-                }
-
-            parameters["properties"][name] = param_entry
 
         schema = {
             "type": "function",
@@ -129,9 +143,6 @@ class FunctionTool:
                 "parameters": parameters
             }
         }
-
-        if examples:
-            schema["function"]["examples"] = examples
 
         return schema
 
@@ -172,17 +183,36 @@ class FunctionTool:
         :param function: The function whose parameters can be determined by OpenAI.
         :param metadata: The metadata of the function, including its description and its parameters.
         """
-        self.function = function
+        self._function = function
         if metadata is None:
-            self.metadata = FunctionTool.__metadata__(function)
+            self._metadata = FunctionTool.__metadata__(function)
         else:
-            self.metadata = metadata
+            self._metadata = metadata
 
     def __call__(self, *args, **kwargs):
-        return self.function(*args, **kwargs)
+        return self._function(*args, **kwargs)
 
+    @property
+    def metadata(self):
+        return self._metadata
+
+    @property
+    def function(self):
+        return self._function
+
+
+def example_function(title: str, attendees: Union[int, float], data: Union[dict[str, list[int]], None] = None):
+    """Create a meeting record.
+    :param title: The title of the meeting.
+    :param attendees: The number of attendees or None if unknown.
+    :param data: Additional data about the meeting.
+    :type data: {"attendees": ["int"], "time": "float", "data": [{"a": "int", "b": ["float"]}]}
+    :return: A meeting record schema.
+    Examples:
+    example_function('Meeting', 10, {'agenda': [1, 2, 3]})
+    """
 
 if __name__ == "__main__":
-    f = FunctionTool(FunctionTool.__metadata__)
-    g = f(FunctionTool)
-    print(json.dumps(g, indent=4))
+    f = FunctionTool(example_function)
+    #g = f(FunctionTool)
+    print(json.dumps(f.metadata, indent=4))

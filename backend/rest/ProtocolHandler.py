@@ -1,8 +1,6 @@
 import json
 
 from backend.utils import *
-from backend.utils.FunctionTool import FunctionTool
-
 
 class ProtocolHandler:
 
@@ -44,9 +42,9 @@ class ProtocolHandler:
         :param date: The date of the protocol in YYYY-MM-DD format
         :param place: The place of the protocol
         :param numberOfAttendees: The number of speakers in the protocol
-        :param agendaItems: The agenda items of the protocol as an array of JSON objects.
-        Each object has two string properties: 'title' and 'explanation',
-        where title is the title of the item and explanation is the explanation of the item.
+        :param agendaItems: The agenda items of the protocol.
+        Each item has is described by a title and a summary of its content as an explanation.
+        :type agendaItems: [{"title": "str", "explanation": "str"}]
         :return: a protocol object.
         """
         return None
@@ -76,8 +74,6 @@ class ProtocolHandler:
                      }
         """
         tool = FunctionTool(ProtocolHandler._create_protocol, metadata=form)
-        print(tool.metadata)
-        return {}
         client = OpenAIClient.new_client()
         system_message = ("You will receive from the user a transcript in the following JSON format as message:\n\n"
                           "{'segment': [{'speaker': 'speaker1', 'text': 'text1'}, {'speaker': 'speaker2', 'text': 'text2'}, ...]}\n\n"
@@ -86,4 +82,5 @@ class ProtocolHandler:
         user_message = json.dumps(self._transcript.transcript_as_dict())
         output = client.prompt(system_message, user_message, tools=[tool])
         get_tool = [t for t in output["tools"] if t["tool"] == tool][0]
-        return get_tool
+        args = get_tool["args"]
+        return args
