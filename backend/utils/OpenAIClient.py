@@ -1,8 +1,6 @@
 import json
 
 from openai import OpenAI
-from openai.types.chat import ChatCompletionMessageToolCall
-from openai.types.chat.chat_completion_message_tool_call import Function
 
 from backend.utils.FunctionTool import FunctionTool
 
