@@ -7,17 +7,12 @@ class Annotation:
 
     __key_path__ = '.venv/PYANNOTE_KEY'
 
-    @staticmethod
-    def __import_key__() -> str:
-        with open(Annotation.__key_path__, 'r') as file:
-            return file.readline()
-
-    __key__ = __import_key__()
-
     def __init__(self, device='cpu'):
+        with open(Annotation.__key_path__, 'r') as file:
+            key = file.readline()
         self.pipeline = Pipeline.from_pretrained(
             "pyannote/speaker-diarization-3.1",
-            use_auth_token=Annotation.__key__)
+            use_auth_token=key)
         self.pipeline.to(torch.device(device))
 
     def annotate(self, recording: Recording) -> list[tuple[str, float, float]]:
