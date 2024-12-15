@@ -1,4 +1,7 @@
+import json
+
 from openai import OpenAI
+
 from backend.utils.FunctionTool import FunctionTool
 
 class OpenAIClient:
@@ -42,11 +45,10 @@ class OpenAIClient:
         )
 
         if tools is not None:
-            tools = [tool.metadata for tool in tools]
             completion = self.client.chat.completions.create(
                 model="gpt-4o-mini",
                 messages=self.messages,
-                tools=tools,
+                tools=[tool.metadata for tool in tools],
             )
         else:
             completion = self.client.chat.completions.create(
@@ -56,16 +58,16 @@ class OpenAIClient:
         output = completion.choices[0].message
         self.messages.append(output)
         content = output.content
-        tool_calls = output.toolcalls
-        returned_tools = []
+        tool_calls = output.tool_calls
 
+        returned_tools = []
         for call in tool_calls:
-            function = call.function
-            assert function.type == 'function', "Only function tools are supported for the moment."
-            name, args = function.name, function.args
-            tool = list(filter(lambda f: f['function']['name'] == name, tools))
+            call_type, function = call.type, call.function
+            assert call_type == 'function', "Only function tools are supported for the moment."
+            name, args = function.name, function.arguments
+            tool = list(filter(lambda tool: tool.metadata['function']['name'] == name, tools))
             assert len(tool) == 1, ("Either the returned tool does not correspond to one of the given tools or"
                                     " tools has two FunctionTools with the same name")
-            returned_tools.append({'tool': tool[0], 'args': args})
+            returned_tools.append({'tool': tool[0], 'args': json.loads(args)})
 
         return {'content': content, 'tools': returned_tools}

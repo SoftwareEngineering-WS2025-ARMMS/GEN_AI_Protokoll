@@ -1,5 +1,3 @@
-import os
-
 from pyannote.audio import Pipeline
 import torch
 
@@ -7,9 +5,11 @@ from backend.utils.Recording import Recording
 
 class Annotation:
 
+    __key_path__ = '.venv/PYANNOTE_KEY'
+
     @staticmethod
     def __import_key__() -> str:
-        with open('.venv/PYANNOTE_KEY', 'r') as file:
+        with open(Annotation.__key_path__, 'r') as file:
             return file.readline()
 
     __key__ = __import_key__()

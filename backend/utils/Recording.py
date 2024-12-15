@@ -48,8 +48,10 @@ class Recording:
 
     @classmethod
     def from_file(cls, file, extension='.wav') -> "Recording":
-        byte_obj = BytesIO(file.read())
+        read_audio = file.read()
+        byte_obj = BytesIO(read_audio)
         content = AudioSegment.from_file(byte_obj, format=extension[1:])
+        byte_obj = BytesIO(read_audio)
         recording = cls(extension=extension, content=content, waveform=torchaudio.load(byte_obj))
         return recording
 
