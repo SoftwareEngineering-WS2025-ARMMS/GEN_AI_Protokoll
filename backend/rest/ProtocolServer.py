@@ -1,10 +1,17 @@
+import json
+
 from flask import Flask, request, jsonify
 
 from backend.rest.ProtocolHandler import ProtocolHandler
+from backend.utils.DataBaseConnection import DataBaseConnection
 
 app = Flask(__name__)
 
 protocol = ProtocolHandler()
+
+db_metadata = json.load(open('../../.venv/database_metadata.json', 'r'))
+
+database = DataBaseConnection(**db_metadata)
 
 @app.route('/api/upload-audio', methods=['POST'])
 def upload_recording():
@@ -46,12 +53,33 @@ def get_proto_draft_text():
     except AssertionError as e:
         return jsonify({'error': f'Could not generate protocol due to this error: \n{str(e)}!'}), 400
     except Exception as e:
-        raise e
-@app.route('/saveProtokoll', methods=['POST'])
-def save_protocol():
-    # Not implemented yet due to barely discussed database configuration
-    pass
+        return jsonify({'error': str(e)}), 500
 
+@app.route('/api/protocol', methods=['POST'])
+def save_protocol():
+    try:
+        user_id = request.args.get('user_id')
+        database.save_protocol(protocol.generate_protocol(), user_id=user_id)
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/protocol', methods=['GET'])
+def get_protocol():
+    try:
+        protocol_id = int(request.args.get('id'))
+        user_id = request.args.get('user_id')
+        return jsonify(database.get_protocol_by_id(protocol_id, user_id)), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/protocols', methods=['GET'])
+def get_protocols():
+    try:
+        user_id = request.args.get('user_id')
+        return jsonify(database.get_protocol_summaries(user_id)), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 if __name__ == "__main__":
     app.run(host='127.0.0.1', port=5000, debug=True)

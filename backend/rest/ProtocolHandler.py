@@ -1,3 +1,4 @@
+import copy
 import json
 
 from backend.utils import *
@@ -14,6 +15,10 @@ class ProtocolHandler:
     @property
     def transcript(self):
         return self._transcript
+
+    @property
+    def protocol(self):
+        return copy.deepcopy(self._protocol)
 
     def generate_transcript(self, audio_file) -> TextTranscript:
         self._recording = Recording.from_file(audio_file)
@@ -34,45 +39,23 @@ class ProtocolHandler:
         new_transcript = [(speakers[speaker], text) for (speaker, text) in self._transcript.transcript]
         self.edit_transcript(new_transcript)
 
-    @staticmethod
-    def _create_protocol(title: str, numberOfAttendees: int, agendaItems: list, date: str = "", place: str = ""):
-        """
-        Create a protocol object for the given parameters.
-        :param title: The title of the protocol
-        :param date: The date of the protocol in YYYY-MM-DD format
-        :param place: The place of the protocol
-        :param numberOfAttendees: The number of speakers in the protocol
-        :param agendaItems: The agenda items of the protocol.
-        Each item has is described by a title and a summary of its content as an explanation.
-        :type agendaItems: [{"title": "str", "explanation": "str"}]
-        :return: a protocol object.
-        """
-        return None
-
     def generate_protocol(self, form: dict | None = None, language: str = 'DE') -> dict:
+        def _create_protocol(title: str, numberOfAttendees: int, agendaItems: list, date: str = "", place: str = ""):
+            """
+            Create a protocol object for the given parameters.
+            :param title: The title of the protocol
+            :param date: The date of the protocol in YYYY-MM-DD format
+            :param place: The place of the protocol
+            :param numberOfAttendees: The number of speakers in the protocol
+            :param agendaItems: The agenda items of the protocol.
+            Each item has is described by a title and a summary of its content as an explanation.
+            :type agendaItems: [{"title": "str", "explanation": "str"}]
+            :return: a protocol object.
+            """
+            return None
+        if self._protocol is not None:
+            return self.protocol
         assert self._transcript is not None, "Cannot generate a protocol without any generated transcript"
-        """
-        if form is None:
-            form = {
-                         "parameters": {
-                            "type": "object",
-                             "properties": {
-                                 "title": {"type": "string", "description": "The title of the protocol"},
-                                 "date": {"type": "string",
-                                          "description": "The date of the protocol in YYYY-MM-DD format"},
-                                 "place": {"type": "string", "description": "The place of the protocol"},
-                                 "numberOfAttendees": {"type": "integer",
-                                                       "description": "The number of speakers in the protocol"},
-                                 "agendaItems": {"type": "array",
-                                                 "description": "The agenda items of the protocol as an array of JSON objects. "
-                                                                "Each objects has two string properties: 'title' and 'explanation', "
-                                                                "where title is the title of the item and explanation is the "
-                                                                "explanation of the item."}
-                             },
-                             "required": ["title", "numberOfAttendees", "agendaItems"]
-                         }
-                     }
-        """
         tool = FunctionTool(ProtocolHandler._create_protocol, metadata=form)
         client = OpenAIClient.new_client()
         system_message = ("You will receive from the user a transcript in the following JSON format as message:\n\n"
@@ -83,4 +66,5 @@ class ProtocolHandler:
         output = client.prompt(system_message, user_message, tools=[tool])
         get_tool = [t for t in output["tools"] if t["tool"] == tool][0]
         args = get_tool["args"]
+        self._protocol = copy.deepcopy(args)
         return args
