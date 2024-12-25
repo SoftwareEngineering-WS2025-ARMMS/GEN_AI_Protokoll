@@ -10,12 +10,21 @@ class DataBaseConnection:
         self.initialize_tables()
 
     def __del__(self):
-        self.connection.close()
+        try:
+            self.connection.close()
+        except Exception:
+            pass
+
+    def drop_db(self):
+        cursor = self.connection.cursor()
+        query = 'DROP TABLE IF EXISTS agendaitem; DROP TABLE IF EXISTS protocolmetadata'
+        cursor.execute(query)
+        cursor.close()
 
     def initialize_tables(self):
         query = ('''
-        CREATE TABLE IF NOT EXISTS ProtocolMetadata(id bigint generated always as IDENTITY primary key, user_id varchar(100), title varchar(100), date date, place varchar(100), numberOfAttendees int);
-        CREATE TABLE IF NOT EXISTS AgendaItem(id int references ProtocolMetadata, title varchar(100), explanation varchar(10000));
+        CREATE TABLE IF NOT EXISTS ProtocolMetadata(id bigint generated always as IDENTITY primary key, user_id varchar(100) not null, title varchar(100), date date, place varchar(100), numberOfAttendees int);
+        CREATE TABLE IF NOT EXISTS AgendaItem(id int not null references ProtocolMetadata on delete cascade, title varchar(100), explanation varchar(10000));
         ''')
         cursor = self.connection.cursor()
         cursor.execute(query)
@@ -25,8 +34,8 @@ class DataBaseConnection:
         del self
 
     def save_protocol(self, protocol: dict, user_id: str) -> bool:
-        assert {'title', 'date', 'place', 'numberOfAttendees', 'agendaItems'} == set(protocol.keys())
         try:
+            assert {'title', 'date', 'place', 'numberOfAttendees', 'agendaItems'} == set(protocol.keys())
             cursor = self.connection.cursor()
             query_1 = ('INSERT INTO ProtocolMetadata (title, date, place, user_id, numberOfAttendees) '
                        'VALUES (%s, %s, %s, %s, %s)')
@@ -89,7 +98,11 @@ class DataBaseConnection:
         return [{'id': d[0], 'title': d[1], 'date': d[2], 'place': d[3], 'numberOfAttendees': d[4],
                  'agendaItems': [item[1] for item in items if item[0] == d[0]]} for d in datas]
 
-
+    def remove_protocol(self, protocol_id, user_id) -> None:
+        cursor = self.connection.cursor()
+        query = 'DELETE FROM ProtocolMetadata WHERE id = %s AND user_id = %s;'
+        cursor.execute(query, (protocol_id, user_id))
+        cursor.close()
 
 if __name__ == '__main__':
     db = DataBaseConnection('protocols', 'protocol_server', 'server-pwd', 'localhost', 5800)
@@ -109,4 +122,4 @@ if __name__ == '__main__':
     x= db.save_protocol(protocol, user_id='abcdefghijklmnop')
     print(x)
     """
-    print(db.get_protocol_summaries('abcdefghijklmnop'))
+    db.remove_protocol(3, 'abcdefghijklmnop')

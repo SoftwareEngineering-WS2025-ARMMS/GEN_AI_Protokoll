@@ -1,0 +1,18 @@
+[project]
+name = "ProtoGen-be"
+version = "0.5.0"
+description = "The backend (server) of teh Protogen service used in ARMMS project"
+dependencies = [
+    "pytest>=7.0",  # Ensure pytest is installed
+]
+
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "--verbose"
+testpaths = [
+    "tests"
+]

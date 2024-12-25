@@ -3,11 +3,11 @@ services:
     image: postgres:latest
     container_name: protocol_container
     environment:
-      POSTGRES_USER: protocol_server
-      POSTGRES_PASSWORD: server-pwd
-      POSTGRES_DB: protocols
+      POSTGRES_USER: ${protocol_server}
+      POSTGRES_PASSWORD: ${database_server_pwd}
+      POSTGRES_DB: ${protocol_db_name}
     ports:
-      - "5800:5432"
+      - "${db_port}:5432"
     volumes:
       - db_data:/var/lib/postgresql/protocols/data
 

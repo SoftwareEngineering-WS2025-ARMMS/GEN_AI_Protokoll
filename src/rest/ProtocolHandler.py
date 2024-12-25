@@ -1,9 +1,16 @@
+import base64
+import hashlib
 import copy
 import json
+import hmac
+import time
 
-from backend.utils import *
+from src.utils import *
 
 class ProtocolHandler:
+
+    __C = 0
+    __SECRET_KEY__ = b'abc'
 
     def __init__(self, protocol_id: int = 0):
         self.protocol_id = protocol_id
@@ -11,6 +18,16 @@ class ProtocolHandler:
         self._annotation = None
         self._transcript = None
         self._protocol = None
+        t = time.time()
+        hash_object = hmac.new(ProtocolHandler.__SECRET_KEY__, f'{ProtocolHandler.__C:03}'.encode(), hashlib.sha256)
+        hash_digest = hash_object.digest()
+        self._id = base64.urlsafe_b64encode(hash_digest).decode().rstrip("=")
+        print(time.time() - t)
+        ProtocolHandler.__C += 1
+
+    @property
+    def id(self):
+        return self._id
 
     @property
     def transcript(self):
@@ -20,9 +37,14 @@ class ProtocolHandler:
     def protocol(self):
         return copy.deepcopy(self._protocol)
 
+    @protocol.setter
+    def protocol(self, value):
+        assert {'title', 'date', 'place', 'numberOfAttendees', 'agendaItems'} == set(value.keys())
+        self._protocol = value
+
     def generate_transcript(self, audio_file) -> TextTranscript:
         self._recording = Recording.from_file(audio_file)
-        self._annotation = Annotation()
+        self._annotation = Annotation('cuda')
         annotated_recording = self._annotation.annotate(self._recording)
         trimmed_recordings = self._recording.trim_recording(annotated_recording)
         audio_transcript = AudioTranscript(trimmed_recordings)
@@ -56,7 +78,7 @@ class ProtocolHandler:
         if self._protocol is not None:
             return self.protocol
         assert self._transcript is not None, "Cannot generate a protocol without any generated transcript"
-        tool = FunctionTool(ProtocolHandler._create_protocol, metadata=form)
+        tool = FunctionTool(_create_protocol, metadata=form)
         client = OpenAIClient.new_client()
         system_message = ("You will receive from the user a transcript in the following JSON format as message:\n\n"
                           "{'segment': [{'speaker': 'speaker1', 'text': 'text1'}, {'speaker': 'speaker2', 'text': 'text2'}, ...]}\n\n"
@@ -68,3 +90,8 @@ class ProtocolHandler:
         args = get_tool["args"]
         self._protocol = copy.deepcopy(args)
         return args
+
+
+if __name__ == '__main__':
+    handler = ProtocolHandler()
+    print(handler.id)
