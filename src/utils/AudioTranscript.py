@@ -5,8 +5,8 @@ import websockets
 
 VOSK_SERVER_URL = "ws://localhost:2700"
 
-from backend.utils.TextTranscript import TextTranscript
-from backend.utils.Recording import Recording
+from src.utils.TextTranscript import TextTranscript
+from src.utils.Recording import Recording
 
 class AudioTranscript:
     _transcript = []

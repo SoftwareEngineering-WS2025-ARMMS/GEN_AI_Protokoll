@@ -2,7 +2,7 @@ import json
 
 from openai import OpenAI
 
-from backend.utils.FunctionTool import FunctionTool
+from src.utils.FunctionTool import FunctionTool
 
 class OpenAIClient:
 

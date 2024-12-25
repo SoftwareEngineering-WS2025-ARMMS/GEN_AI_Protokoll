@@ -1,7 +1,7 @@
 from pyannote.audio import Pipeline
 import torch
 
-from backend.utils.Recording import Recording
+from src.utils.Recording import Recording
 
 class Annotation:
 

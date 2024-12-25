@@ -14,12 +14,12 @@ pip install pyannote.audio
 4. Create access token at [HuggingFace](https://hf.co/settings/tokens).
 5. Copy the access token to a safe place so that it is not open to the public. (If using venv, we recommend to copy it to a file '.venv/PYANNOTE_KEY')
 
-PS: If you chose another file location, don't forget to change the "\_\_key_path\_\_" in "utils/Annotation.py" to your file path.
+PS: If you chose another file location, don't forget to change the "\_\_key_path\_\_" in "src/utils/Annotation.py" to your file path.
 
 ## OpenAI key
 As we use for the moment the OpenAI API, it is required that you have an access token stored in a safe place (If using venv, we recommend to copy it to a file '.venv/CHATGPT_API')
-PS: If you chose another file location, don't forget to change the "\_\_key_path\_\_" in "utils/OpenAIClient.py" to your file path.
+PS: If you chose another file location, don't forget to change the "\_\_key_path\_\_" in "src/utils/OpenAIClient.py" to your file path.
 
 
 # Running the server
-To run the server, run the file 'backend/rest/ProtocolServer.py'
+To run the server, run the file 'src/rest/ProtocolServer.py'
