@@ -4,3 +4,4 @@ pyannote.audio
 pydub
 websockets
 flask
+openai
