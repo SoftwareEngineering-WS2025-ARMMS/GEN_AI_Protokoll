@@ -1,6 +1,5 @@
 import asyncio
 import json
-
 import websockets
 
 VOSK_SERVER_URL = "ws://localhost:2700"

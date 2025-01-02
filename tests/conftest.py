@@ -15,3 +15,9 @@ def generate_protocol_mock():
                 {"title": f"Title N°{i}",
                  "explanation": f"Some explanation of the title {i} should be here."}
             for i in range(random.randint(1, 7))]}
+
+"""
+@pytest.fixture
+def generate_place_mock():
+    r = random.Random()
+"""

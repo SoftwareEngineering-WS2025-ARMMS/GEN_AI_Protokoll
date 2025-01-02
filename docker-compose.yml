@@ -1,4 +1,10 @@
 services:
+  vosk-server-de:
+    image: alphacep/kaldi-de:latest
+    container_name: vosk-api-server
+    ports:
+      - "2700:2700"
+    restart: always
   db:
     image: postgres:latest
     container_name: protocol_container
