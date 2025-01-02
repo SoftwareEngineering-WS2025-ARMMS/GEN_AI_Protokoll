@@ -38,5 +38,6 @@ jobs:
     - name: Test with pytest
       run: |
         cd tests
-        docker compose up
+        docker compose up -d
         pytest
+        docker compose down --volumes
