@@ -1,0 +1,6 @@
+flake8
+pytest
+pyannote.audio
+pydub
+websockets
+flask

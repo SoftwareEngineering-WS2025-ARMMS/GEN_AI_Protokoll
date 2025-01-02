@@ -1,6 +1,5 @@
-from os import path
-
 import pytest
+from os import path
 
 from src.utils import Recording
 
