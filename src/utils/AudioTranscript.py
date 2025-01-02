@@ -1,18 +1,21 @@
 import asyncio
 import json
+
 import websockets
+
+from src.utils.Recording import Recording
+from src.utils.TextTranscript import TextTranscript
 
 VOSK_SERVER_URL = "ws://localhost:2700"
 
-from src.utils.TextTranscript import TextTranscript
-from src.utils.Recording import Recording
 
 class AudioTranscript:
     _transcript = []
 
     def __init__(self, transcript: list[tuple[str, Recording]]):
         """
-           Initializes a transcript object as a list of (speaker, recording) tuples.
+        Initializes a transcript object as a list
+         of (speaker, recording) tuples.
         """
         self._transcript = transcript
 
@@ -25,7 +28,7 @@ class AudioTranscript:
 
     async def process_with_vosk(self) -> list[tuple[str, str]]:
         results = []
-        for (speaker, recording) in self._transcript:
+        for speaker, recording in self._transcript:
             async with websockets.connect(VOSK_SERVER_URL) as websocket:
                 waveform, sample_rate = recording.waveform.values()
 
@@ -38,7 +41,7 @@ class AudioTranscript:
                 # Send audio in chunks
                 chunk_size = int(sample_rate * 0.2) * 2  # 0.2 seconds of audio
                 for i in range(0, len(pcm_audio), chunk_size):
-                    await websocket.send(pcm_audio[i:i + chunk_size])
+                    await websocket.send(pcm_audio[i : i + chunk_size])
                     await websocket.recv()  # Receive intermediate result
 
                 await websocket.send('{"eof" : 1}')
