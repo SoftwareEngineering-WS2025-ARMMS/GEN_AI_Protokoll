@@ -5,3 +5,4 @@ pydub
 websockets
 flask
 openai
+psycopg2
