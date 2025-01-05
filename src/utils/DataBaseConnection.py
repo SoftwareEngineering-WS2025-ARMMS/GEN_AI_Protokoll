@@ -35,7 +35,7 @@ class DataBaseConnection:
         query = """
         CREATE TABLE IF NOT EXISTS ProtocolMetadata(
         id bigint generated always as IDENTITY primary key, 
-        user_id varchar(100) not null, 
+        organization varchar(100) not null, 
         title varchar(100), date date, 
         place varchar(100), 
         numberOfAttendees int);
@@ -51,7 +51,7 @@ class DataBaseConnection:
     def close(self):
         del self
 
-    def save_protocol(self, protocol: dict, user_id: str) -> bool:
+    def save_protocol(self, protocol: dict, organization: str) -> bool:
         try:
             assert {
                 "title",
@@ -63,7 +63,7 @@ class DataBaseConnection:
             cursor = self.connection.cursor()
             query_1 = (
                 "INSERT INTO ProtocolMetadata "
-                "(title, date, place, user_id, numberOfAttendees) "
+                "(title, date, place, organization, numberOfAttendees) "
                 "VALUES (%s, %s, %s, %s, %s)"
             )
             cursor.execute(
@@ -72,7 +72,7 @@ class DataBaseConnection:
                     protocol["title"],
                     protocol["date"],
                     protocol["place"],
-                    user_id,
+                    organization,
                     protocol["numberOfAttendees"],
                 ),
             )
@@ -81,12 +81,12 @@ class DataBaseConnection:
             cursor.execute(
                 """SELECT MAX(id) 
                 FROM protocolmetadata 
-                WHERE user_id= %s
+                WHERE organization= %s
                       AND title = %s 
                       AND place = %s 
                       AND numberOfAttendees = %s""",
                 vars=(
-                    user_id,
+                    organization,
                     protocol["title"],
                     protocol["place"],
                     protocol["numberOfAttendees"],
@@ -121,13 +121,13 @@ class DataBaseConnection:
             print(e)
             return False
 
-    def get_protocol_by_id(self, protocol_id: int, user_id: str) -> dict:
+    def get_protocol_by_id(self, protocol_id: int, organization: str) -> dict:
         cursor = self.connection.cursor()
         query_1 = (
             "SELECT title, date, place, numberofattendees "
-            "FROM ProtocolMetadata WHERE id = %s AND user_id = %s;"
+            "FROM ProtocolMetadata WHERE id = %s AND organization = %s;"
         )
-        cursor.execute(query_1, vars=(protocol_id, user_id))
+        cursor.execute(query_1, vars=(protocol_id, organization))
         protocol_metadata = cursor.fetchone()
         if protocol_metadata is None:
             raise RuntimeError("Incorrect user or protocol not found")
@@ -151,21 +151,21 @@ class DataBaseConnection:
             ],
         }
 
-    def get_protocol_summaries(self, user_id: str) -> list:
+    def get_protocol_summaries(self, organization: str) -> list:
         cursor = self.connection.cursor()
         query_1 = """SELECT p.id, p.title, p.date, p.place, p.numberofattendees
         FROM ProtocolMetadata p
-        WHERE user_id = %s;"""
-        cursor.execute(query_1, vars=(user_id,))
+        WHERE organization = %s;"""
+        cursor.execute(query_1, vars=(organization,))
         datas = cursor.fetchall()
         cursor.close()
         cursor = self.connection.cursor()
         query_2 = (
-            "SELECT p.id, a.title "
+            "SELECT p.id, a.title, a.explanation "
             "FROM protocolmetadata p, agendaitem a "
-            "WHERE user_id = %s AND p.id = a.id;"
+            "WHERE organization = %s AND p.id = a.id;"
         )
-        cursor.execute(query_2, vars=(user_id,))
+        cursor.execute(query_2, vars=(organization,))
         items = cursor.fetchall()
         cursor.close()
         return [
@@ -175,15 +175,15 @@ class DataBaseConnection:
                 "date": d[2],
                 "place": d[3],
                 "numberOfAttendees": d[4],
-                "agendaItems": [item[1] for item in items if item[0] == d[0]],
+                "agendaItems": [{'title': item[1], 'explanation': item[2]} for item in items if item[0] == d[0]],
             }
             for d in datas
         ]
 
-    def remove_protocol(self, protocol_id, user_id) -> None:
+    def remove_protocol(self, protocol_id, organization) -> None:
         cursor = self.connection.cursor()
-        query = "DELETE FROM ProtocolMetadata WHERE id = %s AND user_id = %s;"
-        cursor.execute(query, (protocol_id, user_id))
+        query = "DELETE FROM ProtocolMetadata WHERE id = %s AND organization = %s;"
+        cursor.execute(query, (protocol_id, organization))
         cursor.close()
 
 
@@ -204,7 +204,7 @@ if __name__ == "__main__":
                     {'title': 'Title_4', 'explanation': 'Explanation_4'},
                 ]}
 
-    x= db.save_protocol(protocol, user_id='abcdefghijklmnop')
+    x= db.save_protocol(protocol, organization='abcdefghijklmnop')
     print(x)
     """
     db.remove_protocol(3, "abcdefghijklmnop")

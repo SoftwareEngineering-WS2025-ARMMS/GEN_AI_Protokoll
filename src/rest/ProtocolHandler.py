@@ -35,7 +35,7 @@ class ProtocolHandler:
         return self._id
 
     @property
-    def transcript(self):
+    def transcript(self) -> TextTranscript:
         return self._transcript
 
     @property
@@ -55,7 +55,7 @@ class ProtocolHandler:
 
     def generate_transcript(self, audio_file) -> TextTranscript:
         self._recording = Recording.from_file(audio_file)
-        self._annotation = Annotation("cuda")
+        self._annotation = Annotation("cpu")
         annotated_recording = self._annotation.annotate(self._recording)
         trimmed_recordings = self._recording.trim_recording(annotated_recording)
         audio_transcript = AudioTranscript(trimmed_recordings)

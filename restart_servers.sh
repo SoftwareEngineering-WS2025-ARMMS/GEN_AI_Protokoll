@@ -6,7 +6,7 @@ then
   export $(jq -r 'to_entries | .[] | "\(.key)=\(.value)"' .venv/database_metadata.json)
   docker compose down --volumes
   docker compose up -d
-  unset $(jq -r 'keys[]' db_config.json)
+  unset $(jq -r 'keys[]' .venv/database_metadata.json)
 else
   # Used for test pipeline
   echo "Using the test metadata"
@@ -18,5 +18,3 @@ else
   docker compose down --volumes
   docker compose up -d
 fi
-
-
