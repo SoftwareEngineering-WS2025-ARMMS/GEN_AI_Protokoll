@@ -1,12 +1,13 @@
 import asyncio
 import json
+import os
 
 import websockets
 
 from src.utils.Recording import Recording
 from src.utils.TextTranscript import TextTranscript
 
-VOSK_SERVER_URL = "ws://localhost:2700"
+VOSK_SERVER_URL = f"ws://{os.environ.get('VOSK_HOST_URI')}:2700"
 
 
 class AudioTranscript:

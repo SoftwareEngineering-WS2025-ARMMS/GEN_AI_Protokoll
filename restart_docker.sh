@@ -16,5 +16,6 @@ else
   export host="localhost"
   export db_port=5800
   docker compose down --volumes
-  docker compose up -d
+  docker-compose build --no-cache
+  docker compose up --progres=plain
 fi
