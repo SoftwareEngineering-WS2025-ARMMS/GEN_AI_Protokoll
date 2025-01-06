@@ -5,6 +5,7 @@ services:
     ports:
       - "2700:2700"
     restart: always
+
   db:
     image: postgres:latest
     container_name: protocol_container
@@ -16,6 +17,22 @@ services:
       - "${port}:5432"
     volumes:
       - db_data:/var/lib/postgresql/protocols/data
+
+  protogen_backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: protogen_backend
+    environment:
+      - FLASK_ENV=development
+      - VOSK_HOST_URI=vosk-server-de
+    ports:
+      - "5000:5000"
+    depends_on:
+      - db
+      - vosk-server-de
+    volumes:
+      - ./:/usr/src/app
 
 volumes:
   db_data:
