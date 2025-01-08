@@ -11,3 +11,4 @@ flask-oidc
 torchaudio
 torch
 psycopg2-binary
+flask-cors
