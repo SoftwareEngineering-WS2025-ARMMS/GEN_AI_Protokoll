@@ -3,6 +3,7 @@ import os
 import secrets
 import requests
 from jose import jwt
+import threading
 
 from flask import Flask, jsonify, request
 from flask_oidc import OpenIDConnect
@@ -50,6 +51,43 @@ def validate_token(token):
         return {"error": str(e)}
 
 
+@app.route("/api/speakers", methods=["GET"])
+def generate_speaker_text():
+    token = request.headers['Authorization'].split(None, 1)[1].strip()
+    subject = validate_token(token)['sub']
+    protocol_id = request.args["id"]
+    try:
+        protocol = protocols[(protocol_id, subject)]
+    except KeyError:
+        return jsonify({"error": "The speakers you are trying to save do not exist."}), 404
+
+    if not protocol.transcript_generation_done:
+        return jsonify({"percentage": protocol.transcript_generation_percentage * 100,
+                        "isAnnotationDone": protocol.annotation_done,
+                        "isDone": protocol.transcript_generation_done,
+                        "persons": []})
+    cropped = protocol.transcript.transcript_as_dict()
+    for segment in cropped["segments"]:
+        segment["text"] = (
+            segment["text"][: max(100, len(segment["text"]))] + "..."
+        )
+    result = {}
+    for speaker in set(map(lambda s: s["speaker"], cropped["segments"])):
+        result[speaker] = " ".join(
+            map(
+                lambda s: s["text"],
+                filter(
+                    lambda s: s["speaker"] == speaker,
+                    cropped["segments"],
+                ),
+            )
+        )
+    return jsonify({"percentage": protocol.transcript_generation_percentage * 100,
+                    "isAnnotationDone": True,
+                    "isDone": True,
+                    "persons": result}), 200
+
+
 @app.route("/api/upload-audio", methods=["POST"])
 def upload_recording():
     if "file" not in request.files:
@@ -62,25 +100,10 @@ def upload_recording():
     if file:
         try:
             protocol = ProtocolHandler()
-            transcript = protocol.generate_transcript(audio_file=file)
-            cropped = transcript.transcript_as_dict()
-            for segment in cropped["segments"]:
-                segment["text"] = (
-                    segment["text"][: max(100, len(segment["text"]))] + "..."
-                )
-            result = {}
-            for speaker in set(map(lambda s: s["speaker"], cropped["segments"])):
-                result[speaker] = " ".join(
-                    map(
-                        lambda s: s["text"],
-                        filter(
-                            lambda s: s["speaker"] == speaker,
-                            cropped["segments"],
-                        ),
-                    )
-                )
             protocols[(protocol.id, subject)] = protocol
-            return jsonify({"id": protocol.id, "persons": result}), 200
+            thread = threading.Thread(target=ProtocolHandler.generate_transcript, args=(protocol, file))
+            thread.start()
+            return jsonify({"id": protocol.id}), 200
         except Exception as e:
             return jsonify({"error": str(e)}), 500
 
@@ -137,7 +160,7 @@ def get_proto_draft_text():
 @app.route("/api/protocol", methods=["POST"])
 def save_protocol():
     token = request.headers['Authorization'].split(None, 1)[1].strip()
-    decoded_token = validate_token(token)
+    decoded_token: dict[str, any] = validate_token(token)
     subject = decoded_token['sub']
     try:
         organizations = decoded_token['organization_info']
@@ -160,7 +183,7 @@ def save_protocol():
 @app.route("/api/protocol", methods=["GET"])
 def get_protocol():
     token = request.headers['Authorization'].split(None, 1)[1].strip()
-    decoded_token = validate_token(token)
+    decoded_token: dict[str, any] = validate_token(token)
     try:
         organizations = decoded_token['organization_info']
         assert len(organizations.keys()) == 1
@@ -175,7 +198,7 @@ def get_protocol():
 @app.route("/api/protocol", methods=["DELETE"])
 def delete_protocol():
     token = request.headers['Authorization'].split(None, 1)[1].strip()
-    decoded_token = validate_token(token)
+    decoded_token: dict[str, any] = validate_token(token)
     try:
         organizations = decoded_token['organization_info']
         assert len(organizations.keys()) == 1
@@ -191,7 +214,7 @@ def delete_protocol():
 @app.route("/api/protocols", methods=["GET"])
 def get_protocols():
     token = request.headers['Authorization'].split(None, 1)[1].strip()
-    decoded_token = validate_token(token)
+    decoded_token: dict[str, any] = validate_token(token)
     try:
         organizations = decoded_token['organization_info']
         assert len(organizations.keys()) == 1

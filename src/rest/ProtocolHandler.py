@@ -13,12 +13,12 @@ class ProtocolHandler:
     __C = 0
     __SECRET_KEY__ = b"abc"
 
-    def __init__(self, protocol_id: int = 0):
-        self.protocol_id = protocol_id
-        self._recording = None
-        self._annotation = None
-        self._transcript = None
-        self._protocol = None
+    def __init__(self):
+        self._recording: Recording | None = None
+        self._annotation: Annotation | None = None
+        self._transcript: TextTranscript | None = None
+        self._protocol: dict | None = None
+        self._audio_transcript : AudioTranscript | None = None
         t = time.time()
         hash_object = hmac.new(
             ProtocolHandler.__SECRET_KEY__,
@@ -42,6 +42,30 @@ class ProtocolHandler:
     def protocol(self):
         return copy.deepcopy(self._protocol)
 
+    @property
+    def transcript_generation_done(self) -> bool:
+        if self._audio_transcript is None:
+            return False
+        return self._audio_transcript.process_ended
+
+    @property
+    def transcript_generation_percentage(self) -> float:
+        if self._audio_transcript is None:
+            return 0.
+        return self._audio_transcript.process_perc
+
+    @property
+    def transcript_generation_result(self) -> list[tuple[str, str]]:
+        if self._audio_transcript is None:
+            return []
+        return self._audio_transcript.processed_result
+
+    @property
+    def annotation_done(self) -> bool:
+        if self._annotation is None:
+            return False
+        return self._annotation.is_done
+
     @protocol.setter
     def protocol(self, value):
         assert {
@@ -53,13 +77,21 @@ class ProtocolHandler:
         } == set(value.keys())
         self._protocol = value
 
-    def generate_transcript(self, audio_file) -> TextTranscript:
+    def __create_audio_transcript(self, audio_file) -> None:
         self._recording = Recording.from_file(audio_file)
         self._annotation = Annotation("cpu")
         annotated_recording = self._annotation.annotate(self._recording)
         trimmed_recordings = self._recording.trim_recording(annotated_recording)
-        audio_transcript = AudioTranscript(trimmed_recordings)
-        self._transcript = audio_transcript.to_transcript()
+        self._audio_transcript = AudioTranscript(trimmed_recordings)
+
+    async def async_generate_transcript(self, audio_file) -> TextTranscript:
+        self.__create_audio_transcript(audio_file)
+        self._transcript = await self._audio_transcript.async_to_transcript()
+        return self._transcript
+
+    def generate_transcript(self, audio_file) -> TextTranscript:
+        self.__create_audio_transcript(audio_file)
+        self._transcript = self._audio_transcript.to_transcript()
         return self._transcript
 
     def edit_transcript(self, transcript: list[tuple[str, str]] | str | dict):
