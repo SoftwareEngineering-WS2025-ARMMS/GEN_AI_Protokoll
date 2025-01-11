@@ -11,7 +11,6 @@ VOSK_SERVER_URL = f"ws://{os.environ.get('VOSK_HOST_URI')}:2700"
 
 
 class AudioTranscript:
-    _transcript = []
 
     def __init__(self, transcript: list[tuple[str, Recording]]):
         """
@@ -19,6 +18,21 @@ class AudioTranscript:
          of (speaker, recording) tuples.
         """
         self._transcript = transcript
+        self._processed_result = []
+        self._process_perc = 1.
+        self._process_ended = True
+
+    @property
+    def processed_result(self):
+        return self._processed_result
+
+    @property
+    def process_perc(self):
+        return self._process_perc
+
+    @property
+    def process_ended(self):
+        return self._process_ended
 
     def to_transcript(self) -> TextTranscript:
         """
@@ -28,7 +42,11 @@ class AudioTranscript:
         return TextTranscript(asyncio.run(self.process_with_vosk()))
 
     async def process_with_vosk(self) -> list[tuple[str, str]]:
-        results = []
+        self._process_ended = False
+        self._process_perc = 0.
+        self._processed_result = []
+        length = len(self._transcript)
+        it = 0
         for speaker, recording in self._transcript:
             async with websockets.connect(VOSK_SERVER_URL) as websocket:
                 waveform, sample_rate = recording.waveform.values()
@@ -47,5 +65,16 @@ class AudioTranscript:
 
                 await websocket.send('{"eof" : 1}')
                 result = await websocket.recv()
-                results.append((speaker, json.loads(result).get("text")))
-        return results
+                it += 1
+                self._process_perc = it / length
+                self._processed_result.append((speaker, json.loads(result).get("text")))
+        self._process_ended = True
+        self._process_perc = 1.
+        return self._processed_result
+
+    async def async_to_transcript(self) -> TextTranscript:
+        """
+        Transforms the audio transcript to a text transcript.
+        :return:
+        """
+        return TextTranscript(await self.process_with_vosk())
