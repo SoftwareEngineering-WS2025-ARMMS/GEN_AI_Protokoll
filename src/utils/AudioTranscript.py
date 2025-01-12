@@ -39,9 +39,9 @@ class AudioTranscript:
         Transforms the audio transcript to a text transcript.
         :return:
         """
-        return TextTranscript(asyncio.run(self.process_with_vosk()))
+        return TextTranscript(asyncio.run(self._process_with_vosk()))
 
-    async def process_with_vosk(self) -> list[tuple[str, str]]:
+    async def _process_with_vosk(self) -> list[tuple[str, str]]:
         self._process_ended = False
         self._process_perc = 0.
         self._processed_result = []
@@ -71,10 +71,3 @@ class AudioTranscript:
         self._process_ended = True
         self._process_perc = 1.
         return self._processed_result
-
-    async def async_to_transcript(self) -> TextTranscript:
-        """
-        Transforms the audio transcript to a text transcript.
-        :return:
-        """
-        return TextTranscript(await self.process_with_vosk())

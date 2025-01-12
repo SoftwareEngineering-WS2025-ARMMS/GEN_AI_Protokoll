@@ -26,7 +26,7 @@ def setup_and_teardown():
     db.close()
 
 
-def test_init():
+def test_initialize_tables():
     global db
     assert db.connection is not None
     cursor = db.connection.cursor()

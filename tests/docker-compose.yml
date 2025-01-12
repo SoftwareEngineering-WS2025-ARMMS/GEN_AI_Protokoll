@@ -1,15 +1,15 @@
 services:
 
-  vosk-server-de:
+  vosk-server-de-test:
     image: alphacep/kaldi-de:latest
-    container_name: vosk-api-server
+    container_name: vosk-api-server-test
     ports:
       - "2700:2700"
     restart: always
 
-  db:
+  db-test:
     image: postgres:latest
-    container_name: "protocol_container"
+    container_name: "protocol_db_test"
     environment:
       POSTGRES_USER: "protocol_server"
       POSTGRES_PASSWORD: "server_pwd"

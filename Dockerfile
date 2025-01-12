@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     gcc \
     libpq-dev \
+    build-essential \
     ffmpeg && \
     rm -rf /var/lib/apt/lists/*
 
@@ -20,7 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY ./src /usr/src/app/src
 COPY ./requirements.txt /usr/src/app/
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 COPY ./.venv/client_secrets.json /usr/src/app/.venv/
 COPY ./.venv/database_metadata.json /usr/src/app/.venv/
@@ -33,4 +34,7 @@ EXPOSE 5000
 WORKDIR /usr/src/app/
 
 # Start the Flask server by default
-CMD ["python", "-m", "src.rest.ProtocolServer"]
+#CMD ["python", "-m", "src.rest.ProtocolServer"]
+CMD ["uwsgi", "--master" ,"--socket", "0.0.0.0:5000", "--protocol=http", "-w", "src.rest.wsgi:app", "--enable-threads", "--threads", "5"]
+
+

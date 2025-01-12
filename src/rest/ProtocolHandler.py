@@ -4,6 +4,7 @@ import hashlib
 import hmac
 import json
 import time
+import secrets
 
 from src.utils import (Annotation, AudioTranscript, FunctionTool, OpenAIClient,
                        Recording, TextTranscript)
@@ -11,7 +12,7 @@ from src.utils import (Annotation, AudioTranscript, FunctionTool, OpenAIClient,
 
 class ProtocolHandler:
     __C = 0
-    __SECRET_KEY__ = b"abc"
+    __SECRET_KEY__ = bytes(secrets.token_hex(32), 'utf-8')
 
     def __init__(self):
         self._recording: Recording | None = None
@@ -83,11 +84,6 @@ class ProtocolHandler:
         annotated_recording = self._annotation.annotate(self._recording)
         trimmed_recordings = self._recording.trim_recording(annotated_recording)
         self._audio_transcript = AudioTranscript(trimmed_recordings)
-
-    async def async_generate_transcript(self, audio_file) -> TextTranscript:
-        self.__create_audio_transcript(audio_file)
-        self._transcript = await self._audio_transcript.async_to_transcript()
-        return self._transcript
 
     def generate_transcript(self, audio_file) -> TextTranscript:
         self.__create_audio_transcript(audio_file)

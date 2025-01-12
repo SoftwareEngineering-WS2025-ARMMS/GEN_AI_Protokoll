@@ -1,0 +1,25 @@
+name: Deploy ProtoGen-be
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Restart Containers
+        run: |
+          if [ "$(docker ps -q -f name=protogen_backend)" ]; then
+            docker kill protogen_backend
+            docker rm protogen_backend
+            docker build -t protogen_backend .
+            docker run -d protogen_backend
+          else
+            ./restart_docker.sh
+          fi

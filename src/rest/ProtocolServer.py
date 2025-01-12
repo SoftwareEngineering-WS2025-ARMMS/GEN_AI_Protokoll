@@ -1,6 +1,5 @@
 import json
 import os
-import secrets
 import requests
 from jose import jwt
 import threading
@@ -8,8 +7,9 @@ import threading
 from flask import Flask, jsonify, request
 from flask_oidc import OpenIDConnect
 from flask_cors import CORS
+from werkzeug.datastructures import FileStorage
 
-from src.rest.ProtocolHandler import ProtocolHandler
+from src.rest.ProtocolHandler import secrets, ProtocolHandler
 from src.utils.DataBaseConnection import DataBaseConnection
 
 app = Flask(__name__)
@@ -21,13 +21,13 @@ app.config.update({
     "SECRET_KEY": secrets.token_hex(32),
     "OIDC_CLIENT_SECRETS": os.path.join(rest_dir, "../../.venv/client_secrets.json"),
     "OIDC_SCOPES": ["openid", "organization", "email"],
-    "OIDC_INTROSPECTION_AUTH_METHOD": "client_secret_post",
-    "DEBUG": True,
+    "OIDC_INTROSPECTION_AUTH_METHOD": "client_secret_post"
 })
 
 oidc = OpenIDConnect(app)
 
-protocols : dict[tuple[str, str], ProtocolHandler] = {}
+protocol_pool : dict[tuple[str, str], tuple[ProtocolHandler, threading.Lock]] = {}
+protocol_pool_lock = threading.Lock()
 
 db_metadata = json.load(open(os.path.join(rest_dir, "../../.venv/database_metadata.json"), "r"))
 
@@ -53,20 +53,26 @@ def validate_token(token):
 
 @app.route("/api/speakers", methods=["GET"])
 def generate_speaker_text():
+    print('HELLO')
     token = request.headers['Authorization'].split(None, 1)[1].strip()
     subject = validate_token(token)['sub']
     protocol_id = request.args["id"]
     try:
-        protocol = protocols[(protocol_id, subject)]
+        protocol, lock = protocol_pool[(protocol_id, subject)]
     except KeyError:
         return jsonify({"error": "The speakers you are trying to save do not exist."}), 404
-
+    lock.acquire()
     if not protocol.transcript_generation_done:
-        return jsonify({"percentage": protocol.transcript_generation_percentage * 100,
-                        "isAnnotationDone": protocol.annotation_done,
-                        "isDone": protocol.transcript_generation_done,
+        percentage = protocol.transcript_generation_percentage
+        ann_done = protocol.annotation_done
+        transcript_done = protocol.transcript_generation_done
+        lock.release()
+        return jsonify({"percentage": percentage * 100.,
+                        "isAnnotationDone": ann_done,
+                        "isDone": transcript_done,
                         "persons": []})
     cropped = protocol.transcript.transcript_as_dict()
+    lock.release()
     for segment in cropped["segments"]:
         segment["text"] = (
             segment["text"][: max(100, len(segment["text"]))] + "..."
@@ -82,10 +88,16 @@ def generate_speaker_text():
                 ),
             )
         )
-    return jsonify({"percentage": protocol.transcript_generation_percentage * 100,
+    return jsonify({"percentage": 100.,
                     "isAnnotationDone": True,
                     "isDone": True,
                     "persons": result}), 200
+
+
+def safe_transcript_generation(protocol: ProtocolHandler, file: FileStorage, lock: threading.Lock):
+    lock.acquire()
+    ProtocolHandler.generate_transcript(protocol, file)
+    lock.release()
 
 
 @app.route("/api/upload-audio", methods=["POST"])
@@ -100,8 +112,11 @@ def upload_recording():
     if file:
         try:
             protocol = ProtocolHandler()
-            protocols[(protocol.id, subject)] = protocol
-            thread = threading.Thread(target=ProtocolHandler.generate_transcript, args=(protocol, file))
+            protocol_pool_lock.acquire()
+            lock = threading.Lock()
+            protocol_pool[(protocol.id, subject)] = protocol, lock
+            protocol_pool_lock.release()
+            thread = threading.Thread(target=safe_transcript_generation, args=(protocol, file, lock))
             thread.start()
             return jsonify({"id": protocol.id}), 200
         except Exception as e:
@@ -118,11 +133,14 @@ def edit_speakers():
         speaker_map = request.json
         protocol_id = request.args["id"]
         try:
-            protocol = protocols[(protocol_id, subject)]
+            protocol, lock = protocol_pool[(protocol_id, subject)]
         except KeyError:
             return jsonify({"error": "The speakers you are trying to save do not exist."}), 404
+        lock.acquire()
         protocol.edit_speakers(speaker_map)
-        return jsonify(protocol.transcript.transcript_as_dict()), 200
+        transcript = protocol.transcript.transcript_as_dict()
+        lock.release()
+        return jsonify(transcript), 200
     except AssertionError:
         return jsonify({"error": "The speakers' names do not match!"}), 404
     except KeyError as e:
@@ -138,14 +156,17 @@ def get_proto_draft_text():
     try:
         protocol_id = request.args["id"]
         try:
-            protocol = protocols[(protocol_id, subject)]
+            protocol, lock = protocol_pool[(protocol_id, subject)]
         except KeyError:
             return jsonify({"error": "The protocol you are trying to edit does not exist."}), 404
+        lock.acquire()
         try:
             protocol.transcript.transcript = request.json
         except Exception as e:
             print(e)
-        return jsonify(protocol.generate_protocol()), 200
+        protocol_draft = protocol.generate_protocol()
+        lock.release()
+        return jsonify(protocol_draft), 200
     except AssertionError as e:
         return (
             jsonify({"error": f"Could not generate protocol due to:\n{str(e)}!"}),
@@ -169,12 +190,16 @@ def save_protocol():
         organization_id = organizations[name]['id']
         protocol_id = request.args.get("id")
         try:
-            protocol = protocols[(protocol_id, subject)]
+            protocol, lock = protocol_pool[(protocol_id, subject)]
         except KeyError:
             return jsonify({"error": "The protocol you are trying to save does not exist."}), 404
+        lock.acquire()
         protocol.protocol = request.json
+        lock.release()
         database.save_protocol(protocol.protocol, organization=organization_id)
-        protocols.pop((protocol_id, subject))
+        protocol_pool_lock.acquire()
+        protocol_pool.pop((protocol_id, subject))
+        protocol_pool_lock.release()
         return jsonify({"success": True}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
