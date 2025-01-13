@@ -41,13 +41,13 @@ jobs:
     - name: Prepare tests
       run: |
         cd tests
-        export VOSK_HOST_URI=vosk-api-server-test
+        echo "VOSK_HOST_URI=localhost" >> $GITHUB_ENV
         docker compose up -d
 
     - name: Test with pytest
       run: |
         cd tests
-        export VOSK_HOST_URI=vosk-api-server-test
+        echo "VOSK_HOST_URI=localhost" >> $GITHUB_ENV
         pytest
 
     - name: Clean test docker
