@@ -41,10 +41,11 @@ jobs:
     - name: Prepare tests
       run: |
         cd tests
-        export VOSK_HOST_URI=localhost
+        export VOSK_HOST_URI=0.0.0.0
         docker compose up -d
 
     - name: Test with pytest
       run: |
+        cd tests
         pytest
-        docker compose down --volumes
+        docker compose down
