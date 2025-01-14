@@ -3,9 +3,9 @@ services:
   vosk-server-de-test:
     image: alphacep/kaldi-de:latest
     container_name: vosk-api-server-test
+    network_mode: host
     ports:
       - "2700:2700"
-    restart: always
 
   db-test:
     image: postgres:latest

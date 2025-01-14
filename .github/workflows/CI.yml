@@ -18,6 +18,9 @@ jobs:
       matrix:
         python-version: ["3.12"]
 
+    env:
+      VOSK_HOST_URI: localhost
+
     steps:
     - uses: actions/checkout@v4
 
@@ -41,16 +44,20 @@ jobs:
     - name: Prepare tests
       run: |
         cd tests
-        echo "VOSK_HOST_URI=0.0.0.0" >> $GITHUB_ENV
         docker compose up -d
+        sleep 10
 
     - name: Test with pytest
       run: |
         cd tests
-        echo "VOSK_HOST_URI=0.0.0.0" >> $GITHUB_ENV
         pytest
 
     - name: Clean test docker
       run: |
         cd tests
         docker compose down
+
+    - name: Show Docker logs
+      if: failure()
+      run: |
+        docker compose logs
