@@ -13,7 +13,9 @@ from src.rest.ProtocolHandler import secrets, ProtocolHandler
 from src.utils.DataBaseConnection import DataBaseConnection
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for all routes
+CORS(app, origins=["http://localhost:*",
+                   "https://protogen-armms.rayenmanai.site/*"],
+     supports_credentials=True)
 
 rest_dir = os.path.dirname(__file__)
 
