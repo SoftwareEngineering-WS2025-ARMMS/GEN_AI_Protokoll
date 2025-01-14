@@ -19,11 +19,6 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v3
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: '3.12.3'
-
       - name: Check and create virtual environment
         run: |
           if [ ! -d ".venv" ]; then
