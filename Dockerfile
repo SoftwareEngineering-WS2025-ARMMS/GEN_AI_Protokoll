@@ -35,6 +35,6 @@ WORKDIR /usr/src/app/
 
 # Start the Flask server by default
 #CMD ["python", "-m", "src.rest.ProtocolServer"]
-CMD ["uwsgi", "--master" ,"--socket", "0.0.0.0:5000", "--protocol=http", "-w", "src.rest.wsgi:app", "--enable-threads", "--threads", "5"]
+CMD ["uwsgi", "--master" ,"--socket", "0.0.0.0:5000", "--http", "--protocol=http", "-w", "src.rest.wsgi:app", "--enable-threads", "--threads", "5"]
 
 

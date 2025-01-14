@@ -53,7 +53,6 @@ def validate_token(token):
 
 @app.route("/api/speakers", methods=["GET"])
 def generate_speaker_text():
-    print('HELLO')
     token = request.headers['Authorization'].split(None, 1)[1].strip()
     subject = validate_token(token)['sub']
     protocol_id = request.args["id"]
