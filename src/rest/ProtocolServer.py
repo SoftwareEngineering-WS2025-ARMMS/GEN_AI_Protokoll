@@ -14,7 +14,7 @@ from src.utils.DataBaseConnection import DataBaseConnection
 
 app = Flask(__name__)
 CORS(app, origins=["http://localhost:*", "http://127.0.0.1:*",
-                   "https://protogen-armms.rayenmanai.site/*"],
+                   "https://protogen-armms.rayenmanai.site"],
      supports_credentials=True)
 
 rest_dir = os.path.dirname(__file__)
