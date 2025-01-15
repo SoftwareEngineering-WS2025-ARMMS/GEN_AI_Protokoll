@@ -32,6 +32,7 @@ services:
     depends_on:
       - db
       - vosk-server-de
+    restart: always
 
 volumes:
   db_data:

@@ -6,10 +6,10 @@ import threading
 
 from flask import Flask, jsonify, request
 from flask_oidc import OpenIDConnect
-from flask_cors import CORS
+from flask_cors import CORS, cross_origin
 from werkzeug.datastructures import FileStorage
 
-from src.rest.ProtocolHandler import secrets, ProtocolHandler
+from src.rest.ProtocolHandler import ProtocolHandler
 from src.utils.DataBaseConnection import DataBaseConnection
 
 app = Flask(__name__)
@@ -19,12 +19,14 @@ CORS(app, origins=["http://localhost:*", "http://127.0.0.1:*",
 
 rest_dir = os.path.dirname(__file__)
 
+"""
 app.config.update({
     "SECRET_KEY": secrets.token_hex(32),
     "OIDC_CLIENT_SECRETS": os.path.join(rest_dir, "../../.venv/client_secrets.json"),
     "OIDC_SCOPES": ["openid", "organization", "email"],
     "OIDC_INTROSPECTION_AUTH_METHOD": "client_secret_post"
 })
+"""
 
 oidc = OpenIDConnect(app)
 
@@ -63,6 +65,11 @@ def add_cors_headers(response):
 
 
 @app.route("/api/speakers", methods=["GET"])
+@cross_origin(origins=[
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    "https://protogen-armms.rayenmanai.site"
+], supports_credentials=True)
 def generate_speaker_text():
     token = request.headers['Authorization'].split(None, 1)[1].strip()
     subject = validate_token(token)['sub']
@@ -108,6 +115,11 @@ def safe_transcript_generation(protocol: ProtocolHandler, file: FileStorage, loc
 
 
 @app.route("/api/upload-audio", methods=["POST"])
+@cross_origin(origins=[
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    "https://protogen-armms.rayenmanai.site"
+], supports_credentials=True)
 def upload_recording():
     if "file" not in request.files:
         return jsonify({"error": "No file was received by the server"}), 400
@@ -132,6 +144,11 @@ def upload_recording():
     return jsonify({"error": "Invalid file type"}), 400
 
 
+@cross_origin(origins=[
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    "https://protogen-armms.rayenmanai.site"
+], supports_credentials=True)
 @app.route("/api/annotate", methods=["POST", "PUT"])
 def edit_speakers():
     token = request.headers['Authorization'].split(None, 1)[1].strip()
@@ -156,6 +173,11 @@ def edit_speakers():
         return jsonify({"error": str(e)}), 500
 
 
+@cross_origin(origins=[
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    "https://protogen-armms.rayenmanai.site"
+], supports_credentials=True)
 @app.route("/api/transcript", methods=["POST"])
 def get_proto_draft_text():
     token = request.headers['Authorization'].split(None, 1)[1].strip()
@@ -185,6 +207,11 @@ def get_proto_draft_text():
         return jsonify({"error": str(e)}), 500
 
 
+@cross_origin(origins=[
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    "https://protogen-armms.rayenmanai.site"
+], supports_credentials=True)
 @app.route("/api/protocol", methods=["POST"])
 def save_protocol():
     token = request.headers['Authorization'].split(None, 1)[1].strip()
@@ -212,6 +239,11 @@ def save_protocol():
         return jsonify({"error": str(e)}), 500
 
 
+@cross_origin(origins=[
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    "https://protogen-armms.rayenmanai.site"
+], supports_credentials=True)
 @app.route("/api/protocol", methods=["GET"])
 def get_protocol():
     token = request.headers['Authorization'].split(None, 1)[1].strip()
@@ -227,6 +259,11 @@ def get_protocol():
         return jsonify({"error": str(e)}), 500
 
 
+@cross_origin(origins=[
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    "https://protogen-armms.rayenmanai.site"
+], supports_credentials=True)
 @app.route("/api/protocol", methods=["DELETE"])
 def delete_protocol():
     token = request.headers['Authorization'].split(None, 1)[1].strip()
@@ -243,6 +280,11 @@ def delete_protocol():
         return jsonify({"error": str(e)}), 500
 
 
+@cross_origin(origins=[
+    "http://localhost:5000",
+    "http://127.0.0.1:5000",
+    "https://protogen-armms.rayenmanai.site"
+], supports_credentials=True)
 @app.route("/api/protocols", methods=["GET"])
 def get_protocols():
     token = request.headers['Authorization'].split(None, 1)[1].strip()
