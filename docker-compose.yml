@@ -32,8 +32,6 @@ services:
     depends_on:
       - db
       - vosk-server-de
-    volumes:
-      - ./:/usr/src/app
 
 volumes:
   db_data:

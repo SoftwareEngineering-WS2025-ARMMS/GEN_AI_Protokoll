@@ -15,6 +15,5 @@ else
   export database_server_pwd="server_pwd"
   export host="localhost"
   export db_port=5800
-  docker compose down --volumes
-  docker compose up
+  docker compose up --force-recreate --build
 fi

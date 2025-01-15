@@ -13,7 +13,7 @@ from src.rest.ProtocolHandler import secrets, ProtocolHandler
 from src.utils.DataBaseConnection import DataBaseConnection
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:*",
+CORS(app, origins=["http://localhost:*", "http://127.0.0.1:*",
                    "https://protogen-armms.rayenmanai.site/*"],
      supports_credentials=True)
 
@@ -59,21 +59,18 @@ def generate_speaker_text():
     subject = validate_token(token)['sub']
     protocol_id = request.args["id"]
     try:
-        protocol, lock = protocol_pool[(protocol_id, subject)]
+        protocol, _ = protocol_pool[(protocol_id, subject)]
     except KeyError:
         return jsonify({"error": "The speakers you are trying to save do not exist."}), 404
-    lock.acquire()
     if not protocol.transcript_generation_done:
         percentage = protocol.transcript_generation_percentage
         ann_done = protocol.annotation_done
         transcript_done = protocol.transcript_generation_done
-        lock.release()
         return jsonify({"percentage": percentage * 100.,
                         "isAnnotationDone": ann_done,
                         "isDone": transcript_done,
                         "persons": []})
     cropped = protocol.transcript.transcript_as_dict()
-    lock.release()
     for segment in cropped["segments"]:
         segment["text"] = (
             segment["text"][: max(100, len(segment["text"]))] + "..."
