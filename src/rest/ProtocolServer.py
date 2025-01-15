@@ -9,24 +9,22 @@ from flask_oidc import OpenIDConnect
 from flask_cors import CORS, cross_origin
 from werkzeug.datastructures import FileStorage
 
-from src.rest.ProtocolHandler import ProtocolHandler
+from src.rest.ProtocolHandler import ProtocolHandler, secrets
 from src.utils.DataBaseConnection import DataBaseConnection
 
 app = Flask(__name__)
-CORS(app, origins=["http://localhost:*", "http://127.0.0.1:*",
-                   "https://protogen-armms.rayenmanai.site"],
-     supports_credentials=True)
+CORS(app)
 
 rest_dir = os.path.dirname(__file__)
 
-"""
+
 app.config.update({
     "SECRET_KEY": secrets.token_hex(32),
     "OIDC_CLIENT_SECRETS": os.path.join(rest_dir, "../../.venv/client_secrets.json"),
     "OIDC_SCOPES": ["openid", "organization", "email"],
     "OIDC_INTROSPECTION_AUTH_METHOD": "client_secret_post"
 })
-"""
+
 
 oidc = OpenIDConnect(app)
 
