@@ -51,6 +51,7 @@ jobs:
 
     - name: Load keys
       run: |
+        mkdir .venv
         echo -n "$CHATGPT_API_KEY" > .venv/CHATGPT_API
         echo -n "$PYANNOTE_KEY" > .venv/PYANNOTE_KEY
 
