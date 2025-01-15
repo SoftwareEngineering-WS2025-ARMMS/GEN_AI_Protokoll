@@ -20,6 +20,8 @@ jobs:
 
     env:
       VOSK_HOST_URI: localhost
+      CHATGPT_API_KEY: ${{ secrets.CHATGPT_API_KEY }}
+      PYANNOTE_KEY: ${{ secrets.PYANNOTE_KEY }}
 
     steps:
     - uses: actions/checkout@v4
@@ -47,10 +49,20 @@ jobs:
         docker compose up -d
         sleep 10
 
+    - name: Load keys
+      run: |
+        echo -n "$CHATGPT_API_KEY" > .venv/CHATGPT_API
+        echo -n "$PYANNOTE_KEY" > .venv/PYANNOTE_KEY
+
     - name: Test with pytest
       run: |
         cd tests
         pytest
+
+    - name: Remove keys
+      run: |
+        rm .venv/CHATGPT_API
+        rm .venv/PYANNOTE_KEY
 
     - name: Clean test docker
       run: |
