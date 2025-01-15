@@ -5,7 +5,7 @@ then
   echo "Using the metadata stored in the virtual environment directory"
   export $(jq -r 'to_entries | .[] | "\(.key)=\(.value)"' .venv/database_metadata.json)
   docker compose down --volumes
-  docker compose up -d
+  docker compose up -d --force-recreate --build
   unset $(jq -r 'keys[]' .venv/database_metadata.json)
 else
   # Used for test pipeline

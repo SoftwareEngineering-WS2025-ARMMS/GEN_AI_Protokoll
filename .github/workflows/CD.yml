@@ -41,7 +41,7 @@ jobs:
             docker kill protogen_backend
             docker rm protogen_backend
             docker build -t protogen_backend .
-            docker run -d protogen_backend
+            docker compose up -d protogen_backend
           else
             ./restart_docker.sh
           fi
