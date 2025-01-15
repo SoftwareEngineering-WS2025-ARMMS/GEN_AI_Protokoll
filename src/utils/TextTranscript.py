@@ -22,11 +22,12 @@ class TextTranscript:
         if isinstance(new_transcript, list):
             last_speaker = None
             for (speaker, text) in new_transcript:
-                if speaker == last_speaker:
-                    self._transcript[-1] = (last_speaker, self._transcript[-1][1] + '. ' + text)
-                else:
-                    self._transcript.append((speaker, text))
-                last_speaker = speaker
+                if text != '':
+                    if speaker == last_speaker:
+                        self._transcript[-1] = (last_speaker, self._transcript[-1][1] + '. ' + text)
+                    else:
+                        self._transcript.append((speaker, text))
+                    last_speaker = speaker
             return
 
         if type(new_transcript) is str:
@@ -44,11 +45,13 @@ class TextTranscript:
         ), "Wrong JSON format"
         last_speaker = None
         for segment in new_transcript["segments"]:
-            if segment["speaker"] == last_speaker:
-                self._transcript[-1] = (last_speaker, self._transcript[-1][1] + '. ' + segment["text"])
-            else:
-                self._transcript.append((segment["speaker"], segment["text"]))
-            last_speaker = segment["speaker"]
+            speaker, text = segment["speaker"], segment["text"]
+            if text != '':
+                if speaker == last_speaker:
+                    self._transcript[-1] = (last_speaker, self._transcript[-1][1] + '. ' + text)
+                else:
+                    self._transcript.append((speaker, text))
+                last_speaker = speaker
 
     def __init__(self, transcript: list[tuple[str, str]] | str | dict):
         """

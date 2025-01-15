@@ -5,7 +5,6 @@ from jose import jwt
 import threading
 
 from flask import Flask, jsonify, request
-# from flask_oidc import OpenIDConnect
 from flask_cors import CORS, cross_origin
 from werkzeug.datastructures import FileStorage
 
