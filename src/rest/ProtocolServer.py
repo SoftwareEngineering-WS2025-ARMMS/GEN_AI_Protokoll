@@ -5,7 +5,7 @@ from jose import jwt
 import threading
 
 from flask import Flask, jsonify, request
-from flask_oidc import OpenIDConnect
+# from flask_oidc import OpenIDConnect
 from flask_cors import CORS, cross_origin
 from werkzeug.datastructures import FileStorage
 
@@ -24,9 +24,6 @@ app.config.update({
     "OIDC_SCOPES": ["openid", "organization", "email"],
     "OIDC_INTROSPECTION_AUTH_METHOD": "client_secret_post"
 })
-
-
-oidc = OpenIDConnect(app)
 
 protocol_pool : dict[tuple[str, str], tuple[ProtocolHandler, threading.Lock]] = {}
 protocol_pool_lock = threading.Lock()
