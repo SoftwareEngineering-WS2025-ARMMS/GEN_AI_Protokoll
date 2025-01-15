@@ -14,4 +14,3 @@ torch
 psycopg2-binary
 flask-cors
 uwsgi
-secrets
