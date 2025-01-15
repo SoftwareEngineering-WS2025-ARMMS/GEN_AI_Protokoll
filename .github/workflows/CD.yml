@@ -30,10 +30,10 @@ jobs:
 
       - name: Import Secrets
         run: |
-          echo "$CHATGPT_API_KEY" > .venv/CHATGPT_API
-          echo "$CLIENT_SECRETS" > .venv/client_secrets.json
-          echo "$DATABASE_METADATA" > .venv/database_metadata.json
-          echo "$PYANNOTE_KEY" > .venv/PYANNOTE_KEY
+          echo -n "$CHATGPT_API_KEY" > .venv/CHATGPT_API
+          echo -n "$CLIENT_SECRETS" > .venv/client_secrets.json
+          echo -n "$DATABASE_METADATA" > .venv/database_metadata.json
+          echo -n "$PYANNOTE_KEY" > .venv/PYANNOTE_KEY
 
       - name: Restart Containers
         run: |
