@@ -3,7 +3,6 @@ import copy
 import hashlib
 import hmac
 import json
-import time
 import secrets
 
 from src.utils import (Annotation, AudioTranscript, FunctionTool, OpenAIClient,
@@ -20,7 +19,6 @@ class ProtocolHandler:
         self._transcript: TextTranscript | None = None
         self._protocol: dict | None = None
         self._audio_transcript : AudioTranscript | None = None
-        t = time.time()
         hash_object = hmac.new(
             ProtocolHandler.__SECRET_KEY__,
             f"{ProtocolHandler.__C:03}".encode(),
@@ -28,7 +26,6 @@ class ProtocolHandler:
         )
         hash_digest = hash_object.digest()
         self._id = base64.urlsafe_b64encode(hash_digest).decode().rstrip("=")
-        print(time.time() - t)
         ProtocolHandler.__C += 1
 
     @property
@@ -86,9 +83,12 @@ class ProtocolHandler:
         self._audio_transcript = AudioTranscript(trimmed_recordings)
 
     def generate_transcript(self, audio_file) -> TextTranscript:
-        self.__create_audio_transcript(audio_file)
-        self._transcript = self._audio_transcript.to_transcript()
-        return self._transcript
+        try:
+            self.__create_audio_transcript(audio_file)
+            self._transcript = self._audio_transcript.to_transcript()
+            return self._transcript
+        except Exception:
+            pass
 
     def edit_transcript(self, transcript: list[tuple[str, str]] | str | dict):
         if self._transcript is None:
@@ -121,14 +121,21 @@ class ProtocolHandler:
             :param agendaItems: The agenda items of the protocol.
             Each item has is described by
                 * a title
-                * a summary of its content as an explanation.
+                * a summary of its content as an explanation. The explanation contains further
+                details about the item, including the members who are discussing it, the
+                important details mentioned and the actions to be discussed.
+                An example of an agenda item for a german organization (in german)
+                titel: "Anzahl der Mitglieder"
+                explanation:
+                "Wir durften in diesem Jahr wieder ein neues Mitglied begrüßen, welches sich
+                tatkräftig und finanziell sehr engagiert. Alle Mitglieder sind weiterhin ehrenamtlich
+                tätig. Alle zugeteilten Aufgaben werden vollumfänglich erfüllt.
+                Sowohl die Vorstandsmitglieder, als auch die Kassenprüfung wurde wiedergewählt."
             :type agendaItems: [{"title": "str", "explanation": "str"}]
             :return: a protocol object.
             """
             return None
 
-        if self._protocol is not None:
-            return self.protocol
         assert (
             self._transcript is not None
         ), "Cannot generate a protocol without any generated transcript"
@@ -145,7 +152,8 @@ class ProtocolHandler:
             f"in the language '{language}'."
         )
         user_message = json.dumps(self._transcript.transcript_as_dict())
-        output = client.prompt(system_message, user_message, tools=[tool])
+        output = client.prompt(user_prompt=user_message,
+                               system_prompt=system_message, tools=[tool])
         get_tool = [t for t in output["tools"] if t["tool"] == tool][0]
         args = get_tool["args"]
         self._protocol = copy.deepcopy(args)

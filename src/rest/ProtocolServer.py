@@ -80,6 +80,12 @@ def generate_speaker_text():
                         "isAnnotationDone": ann_done,
                         "isDone": transcript_done,
                         "persons": []})
+
+    if protocol.transcript_generation_percentage < - 1e-3:
+        protocol_pool_lock.acquire()
+        protocol_pool.pop((protocol_id, subject))
+        protocol_pool_lock.release()
+        return jsonify({"error": "Unable to read the audio."}), 401
     cropped = protocol.transcript.transcript_as_dict()
     for segment in cropped["segments"]:
         segment["text"] = (

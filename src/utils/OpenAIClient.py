@@ -47,46 +47,49 @@ class OpenAIClient:
                 }
             )
 
-        self.messages.append(
-            {
-                "role": "user",
-                "content": user_prompt,
-            }
-        )
-
-        if tools is not None:
-            completion = self.client.chat.completions.create(
-                model="gpt-4o-mini",
-                messages=self.messages,
-                tools=[tool.metadata for tool in tools],
+        iteration = 0
+        while iteration < 2:
+            iteration += 1
+            self.messages.append(
+                {
+                    "role": "user",
+                    "content": user_prompt,
+                }
             )
-        else:
-            completion = self.client.chat.completions.create(
-                model="gpt-4o-mini", messages=self.messages
-            )
-        output = completion.choices[0].message
-        self.messages.append(output)
-        content = output.content
-        tool_calls = output.tool_calls
 
-        returned_tools = []
-        for call in tool_calls:
-            call_type, function = call.type, call.function
-            assert (
-                call_type == "function"
-            ), "Only function tools are supported for the moment."
-            name, args = function.name, function.arguments
-            tool = list(
-                filter(
-                    lambda tool: tool.metadata["function"]["name"] == name,
-                    tools,
+            if tools is not None:
+                completion = self.client.chat.completions.create(
+                    model="gpt-4o-mini",
+                    messages=self.messages,
+                    tools=[tool.metadata for tool in tools],
                 )
-            )
-            assert len(tool) == 1, (
-                "Either the returned tool does not correspond "
-                "to one of the given tools or "
-                "tools has two FunctionTools with the same name"
-            )
-            returned_tools.append({"tool": tool[0], "args": json.loads(args)})
+            else:
+                completion = self.client.chat.completions.create(
+                    model="gpt-4o-mini", messages=self.messages
+                )
+            output = completion.choices[0].message
+            self.messages.append(output)
+            content = output.content
+            tool_calls = output.tool_calls
+            returned_tools = []
+            if tool_calls is not None:
+                for call in tool_calls:
+                    call_type, function = call.type, call.function
+                    assert (
+                        call_type == "function"
+                    ), "Only function tools are supported for the moment."
+                    name, args = function.name, function.arguments
+                    tool = list(
+                        filter(
+                            lambda tool: tool.metadata["function"]["name"] == name,
+                            tools,
+                        )
+                    )
+                    assert len(tool) == 1, (
+                        "Either the returned tool does not correspond "
+                        "to one of the given tools or "
+                        "tools has two FunctionTools with the same name"
+                    )
+                    returned_tools.append({"tool": tool[0], "args": json.loads(args)})
 
-        return {"content": content, "tools": returned_tools}
+                return {"content": content, "tools": returned_tools}
