@@ -1,47 +1,49 @@
 name: Deploy ProtoGen-be
 
+# This is not needed for the repository anymore, however, it can further be used on a self-hosted machine.
+
 on:
   push:
     branches:
       - main
 
 jobs:
-  deploy:
-    runs-on: self-hosted
-
-    env:
-      CHATGPT_API_KEY: ${{ secrets.CHATGPT_API_KEY }}
-      CLIENT_SECRETS: ${{ secrets.CLIENT_SECRETS }}
-      DATABASE_METADATA: ${{ secrets.DATABASE_METADATA }}
-      PYANNOTE_KEY: ${{ secrets.PYANNOTE_KEY }}
-
-    steps:
-      - name: Checkout Code
-        uses: actions/checkout@v3
-
-      - name: Check and create virtual environment
-        run: |
-          if [ ! -d ".venv" ]; then
-            echo "Creating virtual environment in .venv folder"
-            python -m venv .venv
-          else
-            echo "Virtual environment already exists, skipping creation"
-          fi
-
-      - name: Import Secrets
-        run: |
-          echo -n "$CHATGPT_API_KEY" > .venv/CHATGPT_API
-          echo -n "$CLIENT_SECRETS" > .venv/client_secrets.json
-          echo -n "$DATABASE_METADATA" > .venv/database_metadata.json
-          echo -n "$PYANNOTE_KEY" > .venv/PYANNOTE_KEY
-
-      - name: Restart Containers
-        run: |
-          if [ "$(docker ps -q -f name=protogen_backend)" ]; then
-            docker kill protogen_backend
-            docker rm protogen_backend
-            docker build -t protogen_backend .
-            docker compose up -d protogen_backend
-          else
-            ./restart_docker.sh
-          fi
+#  deploy:
+#    runs-on: self-hosted
+#
+#    env:
+#      CHATGPT_API_KEY: ${{ secrets.CHATGPT_API_KEY }}
+#      CLIENT_SECRETS: ${{ secrets.CLIENT_SECRETS }}
+#      DATABASE_METADATA: ${{ secrets.DATABASE_METADATA }}
+#      PYANNOTE_KEY: ${{ secrets.PYANNOTE_KEY }}
+#
+#    steps:
+#      - name: Checkout Code
+#        uses: actions/checkout@v3
+#
+#      - name: Check and create virtual environment
+#        run: |
+#          if [ ! -d ".venv" ]; then
+#            echo "Creating virtual environment in .venv folder"
+#            python -m venv .venv
+#          else
+#            echo "Virtual environment already exists, skipping creation"
+#          fi
+#
+#      - name: Import Secrets
+#        run: |
+#          echo -n "$CHATGPT_API_KEY" > .venv/CHATGPT_API
+#          echo -n "$CLIENT_SECRETS" > .venv/client_secrets.json
+#          echo -n "$DATABASE_METADATA" > .venv/database_metadata.json
+#          echo -n "$PYANNOTE_KEY" > .venv/PYANNOTE_KEY
+#
+#      - name: Restart Containers
+#        run: |
+#          if [ "$(docker ps -q -f name=protogen_backend)" ]; then
+#            docker kill protogen_backend
+#            docker rm protogen_backend
+#            docker build -t protogen_backend .
+#            docker compose up -d protogen_backend
+#          else
+#            ./restart_docker.sh
+#          fi

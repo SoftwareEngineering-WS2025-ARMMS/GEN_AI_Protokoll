@@ -3,6 +3,7 @@ import os
 import requests
 from jose import jwt
 import threading
+import traceback
 
 from flask import Flask, jsonify, request
 from flask_cors import CORS, cross_origin
@@ -45,8 +46,8 @@ def validate_token(token):
             issuer="https://keycloak-armms.rayenmanai.site/realms/ARMMS-Platform"
         )
         return decoded_token
-    except Exception as e:
-        return {"error": str(e)}
+    except Exception:
+        return {"error": traceback.format_exc()}
 
 
 @app.after_request
@@ -80,6 +81,12 @@ def generate_speaker_text():
                         "isAnnotationDone": ann_done,
                         "isDone": transcript_done,
                         "persons": []})
+
+    if protocol.transcript_generation_percentage < - 1e-3:
+        protocol_pool_lock.acquire()
+        protocol_pool.pop((protocol_id, subject))
+        protocol_pool_lock.release()
+        return jsonify({"error": "Unable to read the audio."}), 401
     cropped = protocol.transcript.transcript_as_dict()
     for segment in cropped["segments"]:
         segment["text"] = (
